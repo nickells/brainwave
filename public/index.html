@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <button id="start">Start Brain Waves</button>
+  </body>
+
+  <script>
+
+    let oscs = []
+
+    const setAllVolumes = () => oscs.forEach(wave => wave.setVolume())
+
+    const TRANSITION_TIME = 100
+
+    class BrainWave {
+      constructor(context, freq){
+        this.context = context
+        this.freq = freq
+        this.on = false
+
+        // create Oscillator node
+        const oscillator = context.createOscillator();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, context.currentTime); // value in hertz
+
+        this.oscillator = oscillator
+
+        this.oscillator.start()
+        this.gainNode = context.createGain()
+        this.gainNode.gain.setValueAtTime(0, this.context.currentTime)
+        this.oscillator.connect(this.gainNode)
+        this.gainNode.connect(context.destination)
+      }
+
+      onClick = () =>{
+        this.on = !this.on
+        let cta = this.on ? 'stop' : 'start'
+        this.btn.innerText = `${cta} ${this.freq}hz`
+        if (this.on) {
+          oscs.push(this)
+        } else {
+          oscs = oscs.filter(item => item != this)
+          // if off, turn it off individually
+          this.gainNode.gain.setValueAtTime(0, this.context.currentTime)
+        }
+        // otherwise, set all volumes at the same time
+        setAllVolumes()
+      }
+
+      setVolume() {
+        this.gainNode.gain.setValueAtTime(1 / oscs.length, this.context.currentTime)
+      }
+
+      render(parent){
+        let btn = document.createElement('button')
+        this.btn = btn
+        let cta = this.on ? 'stop' : 'start'
+        btn.innerText = `${cta} ${this.freq}hz`
+        parent.appendChild(btn)
+        btn.addEventListener('click', this.onClick)
+      }
+    }
+
+    document.getElementById('start').addEventListener('click', (evt) => {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      [40, 84, 90].forEach(hz => new BrainWave(audioCtx, hz).render(document.body))
+      document.body.removeChild(evt.target)
+    })
+  </script>
+</html>
